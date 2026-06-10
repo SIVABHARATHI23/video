@@ -120,15 +120,24 @@ function bestImage(raw: RawInfo): string | null {
 
 /** Fetch metadata + a curated list of downloadable formats for a URL. */
 export async function getVideoInfo(url: string): Promise<VideoInfo> {
-  // --ignore-no-formats-error lets us still receive metadata (e.g. for an
-  // image-only Pinterest/Instagram pin) instead of yt-dlp aborting.
-  const stdout = await runYtDlp([
+  const args = [
     "-J",
     "--no-warnings",
     "--no-playlist",
     "--ignore-no-formats-error",
-    url,
-  ]);
+  ];
+
+  // Auto-detect cookies.txt in project root to bypass YouTube blockages
+  const cookiesPath = path.join(process.cwd(), "cookies.txt");
+  try {
+    await fs.access(cookiesPath);
+    args.push("--cookies", cookiesPath);
+  } catch {
+    // No cookies.txt found
+  }
+
+  args.push(url);
+  const stdout = await runYtDlp(args);
   const raw = JSON.parse(stdout) as RawInfo;
 
   const image = bestImage(raw);
@@ -314,6 +323,15 @@ export async function downloadToFile(
     args.push("-f", formatId, "--merge-output-format", "mp4");
   }
 
+  // Auto-detect cookies.txt in project root
+  const cookiesPath = path.join(process.cwd(), "cookies.txt");
+  try {
+    await fs.access(cookiesPath);
+    args.push("--cookies", cookiesPath);
+  } catch {
+    // No cookies.txt found
+  }
+
   args.push(url);
 
   await new Promise<void>((resolve, reject) => {
@@ -357,6 +375,16 @@ export async function downloadImageToFile(url: string, destDir: string): Promise
   const args = ["--no-warnings", "--no-playlist", "--ignore-no-formats-error",
     "--skip-download", "--write-thumbnail", "--convert-thumbnails", "jpg"];
   if (FFMPEG_LOCATION) args.push("--ffmpeg-location", FFMPEG_LOCATION);
+
+  // Auto-detect cookies.txt in project root
+  const cookiesPath = path.join(process.cwd(), "cookies.txt");
+  try {
+    await fs.access(cookiesPath);
+    args.push("--cookies", cookiesPath);
+  } catch {
+    // No cookies.txt found
+  }
+
   args.push("-o", template, url);
 
   await new Promise<void>((resolve, reject) => {
