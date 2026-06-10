@@ -37,7 +37,7 @@ export default function Features() {
       <div className="container-page">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-            Why Millions Choose VidsSave
+            Why Millions Choose VideoHarvester
           </h2>
           <p className="mt-3 text-slate-500">
             One fast, free and friendly tool for every video you want to keep.

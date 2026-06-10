@@ -4,7 +4,7 @@ import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
-import { downloadToFile, isValidUrl } from "@/lib/ytdlp";
+import { downloadToFile, downloadImageToFile, isValidUrl } from "@/lib/ytdlp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
   const url = (params.get("url") || "").trim();
   const formatId = params.get("format") || "best";
   const asMp3 = params.get("mp3") === "1";
+  const asImage = params.get("image") === "1";
   const title = safeName(params.get("title") || "video");
 
   if (!isValidUrl(url)) {
@@ -28,17 +29,24 @@ export async function GET(req: NextRequest) {
 
   let filePath: string;
   try {
-    filePath = await downloadToFile(url, formatId, asMp3, tmpDir);
+    filePath = asImage
+      ? await downloadImageToFile(url, tmpDir)
+      : await downloadToFile(url, formatId, asMp3, tmpDir);
   } catch (err) {
     await fsp.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
     const message = err instanceof Error ? err.message : "Download failed.";
     return new Response(message, { status: 502 });
   }
 
-  const ext = path.extname(filePath) || (asMp3 ? ".mp3" : ".mp4");
+  const fallbackExt = asImage ? ".jpg" : asMp3 ? ".mp3" : ".mp4";
+  const ext = path.extname(filePath) || fallbackExt;
   const stat = await fsp.stat(filePath);
   const downloadName = `${title}${ext}`;
-  const contentType = asMp3 ? "audio/mpeg" : "video/mp4";
+  const contentType = asImage
+    ? "image/jpeg"
+    : asMp3
+      ? "audio/mpeg"
+      : "video/mp4";
 
   const nodeStream = fs.createReadStream(filePath);
   // Clean up the temp directory once the file has been fully streamed.

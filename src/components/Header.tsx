@@ -29,14 +29,27 @@ const NAV: { label: string; items?: string[] }[] = [
   { label: "Topic" },
 ];
 
-export default function Header() {
+interface HeaderProps {
+  onHomeClick?: () => void;
+}
+
+export default function Header({ onHomeClick }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur">
       <div className="container-page flex h-16 items-center justify-between">
-        <a href="#" className="flex items-center gap-2">
+        <a
+          href="#"
+          onClick={(e) => {
+            if (onHomeClick) {
+              e.preventDefault();
+              onHomeClick();
+            }
+          }}
+          className="flex items-center gap-2"
+        >
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none">
               <path
@@ -49,8 +62,7 @@ export default function Header() {
             </svg>
           </span>
           <span className="text-lg font-bold tracking-tight text-slate-900">
-            Vids<span className="text-brand-600">Save</span>
-            <span className="text-slate-400">.com</span>
+            Video<span className="text-brand-600">Harvester</span>
           </span>
         </a>
 
@@ -63,6 +75,7 @@ export default function Header() {
               onMouseLeave={() => setOpenMenu(null)}
             >
               <button
+                onClick={item.label === "Home" ? onHomeClick : undefined}
                 aria-haspopup={item.items ? "menu" : undefined}
                 aria-expanded={item.items ? openMenu === item.label : undefined}
                 className="flex items-center gap-1 rounded-full px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-brand-700"
@@ -121,7 +134,13 @@ export default function Header() {
               <a
                 key={item.label}
                 href="#downloader"
-                onClick={() => setMobileOpen(false)}
+                onClick={(e) => {
+                  setMobileOpen(false);
+                  if (item.label === "Home" && onHomeClick) {
+                    e.preventDefault();
+                    onHomeClick();
+                  }
+                }}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 {item.label}

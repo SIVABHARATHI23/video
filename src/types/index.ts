@@ -19,6 +19,8 @@ export interface VideoFormat {
   filesize: number | null;
   /** true for audio-only formats */
   audioOnly: boolean;
+  /** true for image downloads (e.g. a Pinterest/Instagram photo pin) */
+  image: boolean;
   /** human note such as "video only" or codec info */
   note: string;
 }

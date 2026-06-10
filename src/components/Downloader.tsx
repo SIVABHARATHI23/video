@@ -90,6 +90,7 @@ export default function Downloader() {
       format: f.formatId,
       title: info!.title,
       mp3: f.audioOnly ? "1" : "0",
+      image: f.image ? "1" : "0",
     });
     return `/api/download?${params.toString()}`;
   }
@@ -126,13 +127,13 @@ export default function Downloader() {
         }
       }
 
-      const blob = new Blob(chunks as BlobPart[], {
-        type: f.audioOnly ? "audio/mpeg" : "video/mp4",
-      });
+      const mime = f.image ? "image/jpeg" : f.audioOnly ? "audio/mpeg" : "video/mp4";
+      const fileExt = f.image ? "jpg" : f.audioOnly ? "mp3" : "mp4";
+      const blob = new Blob(chunks as BlobPart[], { type: mime });
       const objUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objUrl;
-      a.download = `${safeName(info!.title)}.${f.audioOnly ? "mp3" : "mp4"}`;
+      a.download = `${safeName(info!.title)}.${fileExt}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -152,7 +153,11 @@ export default function Downloader() {
   async function paste() {
     try {
       const text = await navigator.clipboard.readText();
-      if (text) setUrl(text.trim());
+      const trimmedText = text?.trim();
+      if (trimmedText) {
+        setUrl(trimmedText);
+        analyze(undefined, trimmedText);
+      }
     } catch {
       /* clipboard not available */
     }
@@ -179,6 +184,13 @@ export default function Downloader() {
             inputMode="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
+            onPaste={(e) => {
+              const pastedText = e.clipboardData.getData("text")?.trim();
+              if (pastedText) {
+                setUrl(pastedText);
+                analyze(undefined, pastedText);
+              }
+            }}
             aria-label="Video link"
             placeholder="Paste a YouTube, Instagram, TikTok, Facebook or Pinterest link…"
             className="w-full bg-transparent py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400"
@@ -273,10 +285,14 @@ function FormatRow({
         <div className="flex items-center gap-3">
           <span
             className={`inline-flex h-9 w-14 items-center justify-center rounded-md text-xs font-semibold ${
-              f.audioOnly ? "bg-purple-50 text-purple-700" : "bg-brand-50 text-brand-700"
+              f.image
+                ? "bg-amber-50 text-amber-700"
+                : f.audioOnly
+                  ? "bg-purple-50 text-purple-700"
+                  : "bg-brand-50 text-brand-700"
             }`}
           >
-            {f.audioOnly ? "MP3" : "MP4"}
+            {f.image ? "JPG" : f.audioOnly ? "MP3" : "MP4"}
           </span>
           <div>
             <div className="text-sm font-medium text-slate-800">{f.qualityLabel}</div>

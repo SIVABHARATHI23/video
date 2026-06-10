@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Anton } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -8,8 +8,15 @@ const inter = Inter({
   display: "swap",
 });
 
+const anton = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-anton",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "VidsSave — Free All-in-One Video Downloader",
+  title: "VideoHarvester — Free All-in-One Video Downloader",
   description:
     "Download videos from YouTube, Instagram, Facebook, TikTok and Pinterest for free. Paste a link, pick a quality and save MP4 or MP3 to any device.",
   keywords: [
@@ -29,7 +36,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${anton.variable} scroll-smooth`}>
       <body className="min-h-screen bg-white text-slate-900">{children}</body>
     </html>
   );

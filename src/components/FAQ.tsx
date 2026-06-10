@@ -5,7 +5,7 @@ import { useState } from "react";
 const FAQS = [
   {
     q: "Do I need to install any software?",
-    a: "No. VidsSave runs entirely in your web browser. Just paste a link and download — there is nothing to install.",
+    a: "No. VideoHarvester runs entirely in your web browser. Just paste a link and download — there is nothing to install.",
   },
   {
     q: "Does it work on a laptop or phone?",

@@ -4,7 +4,7 @@ const STEPS = [
     text: "Open the app or website, tap Share (or the menu) and choose Copy Link.",
   },
   {
-    title: "Open VidsSave.com",
+    title: "Open VideoHarvester",
     text: "Come back to this page in any browser on your phone or computer.",
   },
   {

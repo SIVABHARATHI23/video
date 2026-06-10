@@ -24,8 +24,7 @@ export default function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-1">
             <span className="text-lg font-bold tracking-tight text-slate-900">
-              Vids<span className="text-brand-600">Save</span>
-              <span className="text-slate-400">.com</span>
+              Video<span className="text-brand-600">Harvester</span>
             </span>
             <p className="mt-3 text-sm leading-relaxed text-slate-500">
               The free all-in-one tool to download videos and audio from your favourite platforms.
@@ -49,7 +48,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-slate-200 pt-6 sm:flex-row">
-          <p className="text-xs text-slate-400">All rights reserved © 2026 VidsSave.com</p>
+          <p className="text-xs text-slate-400">All rights reserved © 2026 VideoHarvester</p>
           <p className="text-xs text-slate-400">
             Please download only content you own or have permission to save.
           </p>

@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-inter)", "sans-serif"],
+        anton: ["var(--font-anton)", "sans-serif"],
+      },
       colors: {
         brand: {
           50: "#eff6ff",
