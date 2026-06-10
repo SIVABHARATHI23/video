@@ -185,6 +185,7 @@ export default function Downloader() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onPaste={(e) => {
+              e.preventDefault();
               const pastedText = e.clipboardData.getData("text")?.trim();
               if (pastedText) {
                 setUrl(pastedText);
