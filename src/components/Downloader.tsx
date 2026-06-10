@@ -42,6 +42,7 @@ export default function Downloader() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState<VideoInfo | null>(null);
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({});
+  const [showCookieGuide, setShowCookieGuide] = useState(false);
 
   // Allow deep-linking / the browser extension to prefill and auto-analyze:
   // e.g. http://localhost:3000/?url=https://youtu.be/xxxx
@@ -248,6 +249,46 @@ export default function Downloader() {
               </div>
             </div>
           </div>
+
+          {info.platform === "youtube" && info.formats.every((f) => f.image) && (
+            <div className="border-t border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-800">
+              <div className="flex items-start gap-2.5">
+                <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="flex-1">
+                  <span className="font-semibold text-amber-900">YouTube Download Limited:</span>{" "}
+                  YouTube is currently blocking this cloud server from extracting media streams. Only the thumbnail photo is available.
+                  <button
+                    type="button"
+                    onClick={() => setShowCookieGuide(!showCookieGuide)}
+                    className="ml-1.5 font-semibold underline hover:text-amber-950"
+                  >
+                    {showCookieGuide ? "Hide fix instructions" : "How to fix this"}
+                  </button>
+                  
+                  {showCookieGuide && (
+                    <div className="mt-3 rounded-lg bg-amber-100/60 p-3 text-xs text-amber-900 leading-relaxed space-y-2">
+                      <p className="font-semibold">To bypass this block, configure YouTube cookies on your Render dashboard:</p>
+                      <ol className="list-decimal pl-4 space-y-1.5">
+                        <li>Log into YouTube in your browser.</li>
+                        <li>Export your cookies using a browser extension like <strong>"Get cookies.txt LOCALLY"</strong>.</li>
+                        <li>Go to your <strong>Render Dashboard</strong>, select this Web Service, and navigate to the <strong>Environment</strong> settings tab.</li>
+                        <li>
+                          <strong>Choose one option:</strong>
+                          <ul className="list-disc pl-4 mt-1 space-y-1">
+                            <li><strong>Method A (Secret File):</strong> Scroll to <em>Secret Files</em>, add a file named <code>cookies.txt</code> and paste the text contents of the exported cookies.</li>
+                            <li><strong>Method B (Env Var):</strong> Add an environment variable named <code>YOUTUBE_COOKIES</code> and paste the text contents of the exported cookies.</li>
+                          </ul>
+                        </li>
+                        <li>Save the settings. Render will automatically redeploy your app, and downloading YouTube videos will start working!</li>
+                      </ol>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="divide-y divide-slate-100 border-t border-slate-100">
             {info.formats.map((f) => (

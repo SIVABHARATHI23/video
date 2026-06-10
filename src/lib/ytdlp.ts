@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import type { Platform, VideoFormat, VideoInfo } from "@/types";
 
@@ -11,6 +12,41 @@ export const YT_DLP_BIN = process.env.YT_DLP_PATH || "yt-dlp";
 
 /** Optional path to ffmpeg, forwarded to yt-dlp when merging/extracting audio. */
 export const FFMPEG_LOCATION = process.env.FFMPEG_PATH || "";
+
+let tempCookiesPath: string | null = null;
+
+async function getCookiesPath(): Promise<string | null> {
+  // 1. If we have already written the environment cookies to a temp file, reuse it
+  if (tempCookiesPath) {
+    try {
+      await fs.access(tempCookiesPath);
+      return tempCookiesPath;
+    } catch {
+      tempCookiesPath = null;
+    }
+  }
+
+  // 2. Check for YOUTUBE_COOKIES environment variable
+  if (process.env.YOUTUBE_COOKIES) {
+    try {
+      const tempPath = path.join(os.tmpdir(), "ytdlp-cookies.txt");
+      await fs.writeFile(tempPath, process.env.YOUTUBE_COOKIES, "utf-8");
+      tempCookiesPath = tempPath;
+      return tempPath;
+    } catch (err) {
+      console.error("Failed to write YOUTUBE_COOKIES env var to temp file:", err);
+    }
+  }
+
+  // 3. Fallback to cookies.txt in root folder
+  const localCookies = path.join(process.cwd(), "cookies.txt");
+  try {
+    await fs.access(localCookies);
+    return localCookies;
+  } catch {
+    return null;
+  }
+}
 
 export function detectPlatform(url: string): Platform {
   const u = url.toLowerCase();
@@ -127,13 +163,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
     "--ignore-no-formats-error",
   ];
 
-  // Auto-detect cookies.txt in project root to bypass YouTube blockages
-  const cookiesPath = path.join(process.cwd(), "cookies.txt");
-  try {
-    await fs.access(cookiesPath);
+  // Auto-detect cookies.txt or YOUTUBE_COOKIES env to bypass YouTube blockages
+  const cookiesPath = await getCookiesPath();
+  if (cookiesPath) {
     args.push("--cookies", cookiesPath);
-  } catch {
-    // No cookies.txt found
   }
 
   args.push(url);
@@ -323,13 +356,10 @@ export async function downloadToFile(
     args.push("-f", formatId, "--merge-output-format", "mp4");
   }
 
-  // Auto-detect cookies.txt in project root
-  const cookiesPath = path.join(process.cwd(), "cookies.txt");
-  try {
-    await fs.access(cookiesPath);
+  // Auto-detect cookies.txt or YOUTUBE_COOKIES env
+  const cookiesPath = await getCookiesPath();
+  if (cookiesPath) {
     args.push("--cookies", cookiesPath);
-  } catch {
-    // No cookies.txt found
   }
 
   args.push(url);
@@ -376,13 +406,10 @@ export async function downloadImageToFile(url: string, destDir: string): Promise
     "--skip-download", "--write-thumbnail", "--convert-thumbnails", "jpg"];
   if (FFMPEG_LOCATION) args.push("--ffmpeg-location", FFMPEG_LOCATION);
 
-  // Auto-detect cookies.txt in project root
-  const cookiesPath = path.join(process.cwd(), "cookies.txt");
-  try {
-    await fs.access(cookiesPath);
+  // Auto-detect cookies.txt or YOUTUBE_COOKIES env
+  const cookiesPath = await getCookiesPath();
+  if (cookiesPath) {
     args.push("--cookies", cookiesPath);
-  } catch {
-    // No cookies.txt found
   }
 
   args.push("-o", template, url);
