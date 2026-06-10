@@ -19,6 +19,9 @@ export const metadata: Metadata = {
   title: "VideoHarvester — Free All-in-One Video Downloader",
   description:
     "Download videos from YouTube, Instagram, Facebook, TikTok and Pinterest for free. Paste a link, pick a quality and save MP4 or MP3 to any device.",
+  icons: {
+    icon: "/favicon.png",
+  },
   keywords: [
     "video downloader",
     "youtube downloader",
