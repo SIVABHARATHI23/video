@@ -87,6 +87,7 @@ export async function GET(req: NextRequest) {
           "--no-warnings",
           "--no-playlist",
           "--ignore-no-formats-error",
+          "--impersonate", "chrome",
           "--cookies", testCookiesPath,
           "https://www.youtube.com/watch?v=ScMzIvxBSi4"
         ];

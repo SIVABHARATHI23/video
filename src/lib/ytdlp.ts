@@ -185,6 +185,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
     "--no-warnings",
     "--no-playlist",
     "--ignore-no-formats-error",
+    "--impersonate", "chrome",
   ];
 
   // Auto-detect cookies.txt or YOUTUBE_COOKIES env to bypass YouTube blockages
@@ -368,6 +369,7 @@ export async function downloadToFile(
     "--no-playlist",
     "--concurrent-fragments",
     "5",
+    "--impersonate", "chrome",
     "-o",
     template,
   ];
@@ -427,7 +429,8 @@ export async function downloadToFile(
 export async function downloadImageToFile(url: string, destDir: string): Promise<string> {
   const template = "thumbnail:" + path.join(destDir, "media.%(ext)s");
   const args = ["--no-warnings", "--no-playlist", "--ignore-no-formats-error",
-    "--skip-download", "--write-thumbnail", "--convert-thumbnails", "jpg"];
+    "--skip-download", "--write-thumbnail", "--convert-thumbnails", "jpg",
+    "--impersonate", "chrome"];
   if (FFMPEG_LOCATION) args.push("--ffmpeg-location", FFMPEG_LOCATION);
 
   // Auto-detect cookies.txt or YOUTUBE_COOKIES env
