@@ -20,13 +20,38 @@ export async function GET(req: NextRequest) {
     await fs.access(localPath);
     const stat = await fs.stat(localPath);
     const content = await fs.readFile(localPath, "utf-8");
+    
+    // Parse cookies to check domains and expiry
+    const cookiesInfo: any[] = [];
+    const lines = content.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const parts = trimmed.split(/\s+/);
+      if (parts.length >= 7) {
+        const domain = parts[0];
+        const expiry = Number(parts[4]);
+        const name = parts[5];
+        const expired = expiry > 0 && expiry < Math.floor(Date.now() / 1000);
+        cookiesInfo.push({
+          domain,
+          name,
+          expiry,
+          expiryDate: expiry > 0 ? new Date(expiry * 1000).toISOString() : "never",
+          expired,
+        });
+      }
+    }
+
     diagnostics.localFile = {
       exists: true,
       size: stat.size,
       startsWithNetscape: content.startsWith("# Netscape HTTP Cookie File"),
-      lineCount: content.split("\n").length,
-      firstLinePreview: content.split("\n")[0] || "",
-      secondLinePreview: content.split("\n")[1] || "",
+      lineCount: lines.length,
+      firstLinePreview: lines[0] || "",
+      secondLinePreview: lines[1] || "",
+      cookiesCount: cookiesInfo.length,
+      cookies: cookiesInfo,
     };
   } catch {
     diagnostics.localFile = { exists: false };
