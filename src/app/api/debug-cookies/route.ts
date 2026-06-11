@@ -160,5 +160,46 @@ export async function GET(req: NextRequest) {
     diagnostics.ytDlpCookieTestError = err.message;
   }
 
+  // Run a test query with yt-dlp WITHOUT cookies to see if that works
+  try {
+    const bin = process.env.YT_DLP_PATH || "yt-dlp";
+    const testResultNoCookies = await new Promise<any>((resolve) => {
+      const args = [
+        "-J",
+        "--no-warnings",
+        "--no-playlist",
+        "--ignore-no-formats-error",
+        "--impersonate", "chrome",
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      ];
+      const child = spawn(bin, args);
+      let stdout = "";
+      let stderr = "";
+      child.stdout.on("data", (d) => (stdout += d.toString()));
+      child.stderr.on("data", (d) => (stderr += d.toString()));
+      child.on("close", (code) => {
+        let formatsCount = 0;
+        let formatsPreview: string[] = [];
+        try {
+          const parsed = JSON.parse(stdout);
+          if (parsed.formats) {
+            formatsCount = parsed.formats.length;
+            formatsPreview = parsed.formats.map((f: any) => `${f.format_id} (${f.ext})`).slice(0, 5);
+          }
+        } catch {}
+        resolve({
+          code,
+          stderr: stderr.trim(),
+          formatsCount,
+          formatsPreview,
+        });
+      });
+      child.on("error", (err) => resolve({ error: err.message }));
+    });
+    diagnostics.ytDlpNoCookiesTest = testResultNoCookies;
+  } catch (err: any) {
+    diagnostics.ytDlpNoCookiesTestError = err.message;
+  }
+
   return NextResponse.json(diagnostics);
 }
