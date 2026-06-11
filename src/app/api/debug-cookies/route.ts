@@ -98,16 +98,28 @@ export async function GET(req: NextRequest) {
         child.on("close", (code) => {
           let formatsCount = 0;
           let formatsPreview: string[] = [];
+          let keys: string[] = [];
+          let title = "";
+          let parseError = "";
           try {
             const parsed = JSON.parse(stdout);
+            keys = Object.keys(parsed);
+            title = parsed.title || "";
             if (parsed.formats) {
               formatsCount = parsed.formats.length;
               formatsPreview = parsed.formats.map((f: any) => `${f.format_id} (${f.ext})`).slice(0, 5);
             }
-          } catch {}
+          } catch (err: any) {
+            parseError = err.message;
+          }
           resolve({
             code,
             stderr: stderr.trim(),
+            stdoutLength: stdout.length,
+            stdoutPreview: stdout.slice(0, 500),
+            parseError,
+            keys,
+            title,
             formatsCount,
             formatsPreview,
           });
