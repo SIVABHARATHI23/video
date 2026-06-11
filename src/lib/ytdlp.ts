@@ -49,7 +49,24 @@ async function getCookiesPath(): Promise<string | null> {
     try {
       const tempPath = path.join(os.tmpdir(), "ytdlp-cookies.txt");
       // Clean up escaped newlines if Render or shell escaped them
-      let cleaned = rawCookies.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
+      const unescaped = rawCookies.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
+      
+      // Netscape format requires tab (\t) separation. 
+      // If spaces were introduced during copy-paste or by Render dashboard inputs, we convert them back to tabs.
+      const lines = unescaped.split("\n");
+      const cleanedLines = lines.map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) return line;
+        const parts = trimmed.split(/\s+/);
+        if (parts.length >= 7) {
+          const firstSeven = parts.slice(0, 7).join("\t");
+          const remainder = parts.slice(7).join(" ");
+          return remainder ? `${firstSeven}\t${remainder}` : firstSeven;
+        }
+        return line;
+      });
+
+      let cleaned = cleanedLines.join("\n").trim();
       
       // Ensure the Netscape header is present
       if (!cleaned.startsWith("# Netscape HTTP Cookie File")) {
