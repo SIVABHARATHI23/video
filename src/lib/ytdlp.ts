@@ -30,20 +30,32 @@ async function getCookiesPath(): Promise<string | null> {
   if (process.env.YOUTUBE_COOKIES) {
     try {
       const tempPath = path.join(os.tmpdir(), "ytdlp-cookies.txt");
-      await fs.writeFile(tempPath, process.env.YOUTUBE_COOKIES, "utf-8");
+      // Clean up escaped newlines if Render or shell escaped them
+      let cleaned = process.env.YOUTUBE_COOKIES.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
+      
+      // Ensure the Netscape header is present
+      if (!cleaned.startsWith("# Netscape HTTP Cookie File")) {
+        cleaned = "# Netscape HTTP Cookie File\n" + cleaned;
+      }
+
+      await fs.writeFile(tempPath, cleaned, "utf-8");
       tempCookiesPath = tempPath;
+      console.log(`[Cookies Config] Loaded from YOUTUBE_COOKIES env (length: ${cleaned.length} chars). Saved to: ${tempPath}`);
       return tempPath;
     } catch (err) {
-      console.error("Failed to write YOUTUBE_COOKIES env var to temp file:", err);
+      console.error("[Cookies Config] Failed to write YOUTUBE_COOKIES env var to temp file:", err);
     }
   }
 
-  // 3. Fallback to cookies.txt in root folder
+  // 3. Fallback to cookies.txt in root folder (standard for Render Secret Files)
   const localCookies = path.join(process.cwd(), "cookies.txt");
   try {
     await fs.access(localCookies);
+    const stat = await fs.stat(localCookies);
+    console.log(`[Cookies Config] Loaded local cookies.txt (size: ${stat.size} bytes) from: ${localCookies}`);
     return localCookies;
   } catch {
+    console.log("[Cookies Config] No cookies loaded. YOUTUBE_COOKIES env var is not set, and cookies.txt file is not found in root.");
     return null;
   }
 }
@@ -97,6 +109,9 @@ function runYtDlp(args: string[], timeoutMs = 60_000): Promise<string> {
 
     child.on("close", (code) => {
       clearTimeout(timer);
+      if (stderr.trim()) {
+        console.warn(`[yt-dlp output/stderr]:\n${stderr.trim()}`);
+      }
       if (code === 0) resolve(stdout);
       else reject(new Error(cleanError(stderr) || `yt-dlp exited with code ${code}`));
     });
