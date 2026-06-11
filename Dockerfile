@@ -5,12 +5,11 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y \
     ffmpeg \
     python3 \
-    curl \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp binary and place it in the PATH
-RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp \
-    && chmod a+rx /usr/local/bin/yt-dlp
+# Install yt-dlp via pip with curl-cffi for browser impersonation support
+RUN pip3 install --break-system-packages "yt-dlp[default,curl-cffi]"
 
 # Set working directory
 WORKDIR /app
