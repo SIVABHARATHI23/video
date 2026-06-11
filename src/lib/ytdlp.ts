@@ -26,12 +26,30 @@ async function getCookiesPath(): Promise<string | null> {
     }
   }
 
+  let rawCookies = "";
+  let source = "";
+
   // 2. Check for YOUTUBE_COOKIES environment variable
   if (process.env.YOUTUBE_COOKIES) {
+    rawCookies = process.env.YOUTUBE_COOKIES;
+    source = "YOUTUBE_COOKIES env var";
+  } else {
+    // 3. Fallback to cookies.txt in root folder (standard for Render Secret Files)
+    const localCookies = path.join(process.cwd(), "cookies.txt");
+    try {
+      await fs.access(localCookies);
+      rawCookies = await fs.readFile(localCookies, "utf-8");
+      source = "local cookies.txt file";
+    } catch {
+      // No local cookies file
+    }
+  }
+
+  if (rawCookies) {
     try {
       const tempPath = path.join(os.tmpdir(), "ytdlp-cookies.txt");
       // Clean up escaped newlines if Render or shell escaped them
-      let cleaned = process.env.YOUTUBE_COOKIES.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
+      let cleaned = rawCookies.replace(/\\n/g, "\n").replace(/\\r/g, "\r").trim();
       
       // Ensure the Netscape header is present
       if (!cleaned.startsWith("# Netscape HTTP Cookie File")) {
@@ -40,24 +58,15 @@ async function getCookiesPath(): Promise<string | null> {
 
       await fs.writeFile(tempPath, cleaned, "utf-8");
       tempCookiesPath = tempPath;
-      console.log(`[Cookies Config] Loaded from YOUTUBE_COOKIES env (length: ${cleaned.length} chars). Saved to: ${tempPath}`);
+      console.log(`[Cookies Config] Loaded cookies from ${source} (length: ${cleaned.length} chars). Saved cleaned file to: ${tempPath}`);
       return tempPath;
     } catch (err) {
-      console.error("[Cookies Config] Failed to write YOUTUBE_COOKIES env var to temp file:", err);
+      console.error(`[Cookies Config] Failed to process cookies from ${source}:`, err);
     }
   }
 
-  // 3. Fallback to cookies.txt in root folder (standard for Render Secret Files)
-  const localCookies = path.join(process.cwd(), "cookies.txt");
-  try {
-    await fs.access(localCookies);
-    const stat = await fs.stat(localCookies);
-    console.log(`[Cookies Config] Loaded local cookies.txt (size: ${stat.size} bytes) from: ${localCookies}`);
-    return localCookies;
-  } catch {
-    console.log("[Cookies Config] No cookies loaded. YOUTUBE_COOKIES env var is not set, and cookies.txt file is not found in root.");
-    return null;
-  }
+  console.log("[Cookies Config] No cookies loaded. YOUTUBE_COOKIES env var is not set, and cookies.txt file is not found in root.");
+  return null;
 }
 
 export function detectPlatform(url: string): Platform {
