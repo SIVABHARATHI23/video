@@ -13,6 +13,58 @@ export const YT_DLP_BIN = process.env.YT_DLP_PATH || "yt-dlp";
 /** Optional path to ffmpeg, forwarded to yt-dlp when merging/extracting audio. */
 export const FFMPEG_LOCATION = process.env.FFMPEG_PATH || "";
 
+/**
+ * Optional outbound proxy for yt-dlp, e.g. "http://user:pass@host:port" or
+ * "socks5://host:port". This is the single most reliable fix for YouTube's
+ * datacenter-IP "Sign in to confirm you're not a bot" block: route requests
+ * through a residential IP that YouTube does not flag.
+ */
+export const YT_DLP_PROXY = process.env.YT_DLP_PROXY || "";
+
+/**
+ * Base URL of a running bgutil PO-token (Proof-of-Origin) provider. YouTube's
+ * bot check now wants a PO token; the provider mints one. Defaults to the
+ * sidecar started inside the Docker container on port 4416. Set to "" to disable.
+ */
+export const POT_PROVIDER_URL =
+  process.env.POT_PROVIDER_URL ?? "http://127.0.0.1:4416";
+
+/**
+ * Comma-separated yt-dlp YouTube player clients, tunable without a redeploy.
+ * Leave empty to let yt-dlp pick. Useful overrides when blocked: "default,tv",
+ * "tv", "web_safari,mweb", "default,-web".
+ */
+export const YT_PLAYER_CLIENT = process.env.YT_PLAYER_CLIENT || "";
+
+/**
+ * Shared anti-bot arguments applied to EVERY yt-dlp invocation:
+ *   - browser impersonation (TLS fingerprint)
+ *   - optional residential proxy (the real fix for datacenter-IP blocks)
+ *   - PO-token provider (what the "not a bot" check actually requires)
+ *   - optional player-client override
+ *   - cookies (for age/region-gated or logged-in content)
+ */
+async function antiBotArgs(): Promise<string[]> {
+  const args: string[] = ["--impersonate", "chrome"];
+
+  if (YT_DLP_PROXY) args.push("--proxy", YT_DLP_PROXY);
+
+  if (YT_PLAYER_CLIENT) {
+    args.push("--extractor-args", `youtube:player_client=${YT_PLAYER_CLIENT}`);
+  }
+  if (POT_PROVIDER_URL) {
+    args.push(
+      "--extractor-args",
+      `youtubepot-bgutilhttp:base_url=${POT_PROVIDER_URL}`,
+    );
+  }
+
+  const cookiesPath = await getCookiesPath();
+  if (cookiesPath) args.push("--cookies", cookiesPath);
+
+  return args;
+}
+
 let tempCookiesPath: string | null = null;
 
 async function getCookiesPath(): Promise<string | null> {
@@ -151,7 +203,23 @@ function cleanError(stderr: string): string {
     .filter(Boolean)
     .reverse()
     .find((l) => l.startsWith("ERROR:"));
-  return line ? line.replace(/^ERROR:\s*/, "") : stderr.trim().split("\n").pop() || "";
+  const raw = line
+    ? line.replace(/^ERROR:\s*/, "")
+    : stderr.trim().split("\n").pop() || "";
+
+  // YouTube's datacenter-IP bot wall. Translate the raw message into something
+  // actionable so the cause (server IP, not the user's link) is obvious.
+  if (/sign in to confirm|confirm you'?re not a bot|not a bot/i.test(raw)) {
+    return (
+      "YouTube is blocking this server's IP with a bot check. The server runs on a " +
+      "datacenter IP that YouTube flags — this is not a problem with your link. " +
+      "Fixes (in order of reliability): 1) set a residential proxy in the YT_DLP_PROXY " +
+      "env var, 2) make sure the PO-token provider is running and reachable at " +
+      "POT_PROVIDER_URL, 3) supply fresh YouTube cookies via YOUTUBE_COOKIES."
+    );
+  }
+
+  return raw;
 }
 
 interface RawFormat {
@@ -202,14 +270,8 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
     "--no-warnings",
     "--no-playlist",
     "--ignore-no-formats-error",
-    "--impersonate", "chrome",
+    ...(await antiBotArgs()),
   ];
-
-  // Auto-detect cookies.txt or YOUTUBE_COOKIES env to bypass YouTube blockages
-  const cookiesPath = await getCookiesPath();
-  if (cookiesPath) {
-    args.push("--cookies", cookiesPath);
-  }
 
   args.push(url);
   const stdout = await runYtDlp(args);
@@ -386,7 +448,7 @@ export async function downloadToFile(
     "--no-playlist",
     "--concurrent-fragments",
     "5",
-    "--impersonate", "chrome",
+    ...(await antiBotArgs()),
     "-o",
     template,
   ];
@@ -397,12 +459,6 @@ export async function downloadToFile(
     args.push("-f", "bestaudio/best", "-x", "--audio-format", "mp3");
   } else {
     args.push("-f", formatId, "--merge-output-format", "mp4");
-  }
-
-  // Auto-detect cookies.txt or YOUTUBE_COOKIES env
-  const cookiesPath = await getCookiesPath();
-  if (cookiesPath) {
-    args.push("--cookies", cookiesPath);
   }
 
   args.push(url);
@@ -447,14 +503,8 @@ export async function downloadImageToFile(url: string, destDir: string): Promise
   const template = "thumbnail:" + path.join(destDir, "media.%(ext)s");
   const args = ["--no-warnings", "--no-playlist", "--ignore-no-formats-error",
     "--skip-download", "--write-thumbnail", "--convert-thumbnails", "jpg",
-    "--impersonate", "chrome"];
+    ...(await antiBotArgs())];
   if (FFMPEG_LOCATION) args.push("--ffmpeg-location", FFMPEG_LOCATION);
-
-  // Auto-detect cookies.txt or YOUTUBE_COOKIES env
-  const cookiesPath = await getCookiesPath();
-  if (cookiesPath) {
-    args.push("--cookies", cookiesPath);
-  }
 
   args.push("-o", template, url);
 
